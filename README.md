@@ -1,66 +1,74 @@
-# Adconsa – Sitio web (v1 provisional)
+# ADCONSA – Sitio web (versión de prueba, según brandbook)
 
-Página única estática para **Adconsa**, administración de condominios en República Dominicana.
-HTML + CSS + JS vanilla, sin build, sin dependencias externas (ni webfonts ni librerías).
+Página única estática para **ADCONSA**, administración de condominios en Santo Domingo desde 2010.
+HTML + CSS + JS vanilla, sin build ni dependencias externas (la tipografía se sirve desde el propio sitio).
+
+Versión de prueba publicada (oculta de buscadores: `noindex` + `robots.txt` con `Disallow: /`):
+https://pfdez27.github.io/adconsa-web/
 
 ## Estructura
 
 ```
 adconsa-web/
-├── index.html          # Todo el contenido y textos (secciones, FAQ, meta SEO/Open Graph, JSON-LD)
-├── css/styles.css      # Estilos; MARCA centralizada en el bloque :root (arriba del archivo)
-├── js/config.js        # DATOS DE CONTACTO y endpoint del formulario (un solo lugar)
-├── js/main.js          # Menú móvil, carga de contacto, validación y envío del formulario
+├── index.html              # Contenido, meta SEO/Open Graph y JSON-LD
+├── css/styles.css          # Estilos; MARCA centralizada en :root (colores, fuente, barra tricolor)
+├── js/config.js            # Datos de contacto y endpoint del formulario (un solo lugar)
+├── js/main.js              # Menú, contacto, formulario, CTA, barra móvil, animaciones
 ├── assets/
-│   ├── favicon.svg     # Favicon provisional
-│   ├── logo.svg        # Logotipo provisional (archivo suelto; en la página va inline en el header)
-│   └── og-image.png    # Imagen 1200×630 para redes sociales (provisional)
-├── scripts/capturas.py # Regenera las capturas con Playwright + Chrome
-└── capturas/
-    ├── desktop.png     # Página completa a 1440 px
-    └── movil.png       # Página completa a 390 px (escala 2x)
+│   ├── brand/              # Logos oficiales (copiados de la carpeta de marca, sin modificar) + palette.txt
+│   ├── fonts/              # Montserrat 300/400/500/600/700 en woff2 (subconjunto latino)
+│   ├── favicon-32.png      # Favicon (versión "Solo ícono"); también assets/brand/logo_icono.svg
+│   ├── apple-touch-icon.png
+│   └── og-image.png        # 1200×630 para redes (se genera desde scripts/og-image.html)
+├── scripts/capturas.py     # Capturas + comprobaciones con Playwright y Chrome
+├── scripts/og-image.html   # Plantilla de la imagen para redes
+└── capturas/               # desktop.png, movil.png, desktop-hero.png, movil-hero.png,
+                            # movil-cta-fija.png, movil-formulario.png
 ```
 
-## Ver el sitio en local
+## Marca (brandbook)
+
+| Variable | Valor | Uso |
+|---|---|---|
+| `--color-navy` | `#262262` Azul marino | Títulos y texto principal, fondos oscuros |
+| `--color-medio` | `#2B3990` Azul medio | Subtítulos, acentos |
+| `--color-claro` | `#1B75BC` Azul claro | Botones, antetítulos en mayúsculas |
+| `--color-blanco` | `#FFFFFF` | Fondos y texto sobre azul |
+| `--font-base` | Montserrat | Títulos Bold, antetítulos SemiBold con espaciado, cuerpo Light/Regular |
+
+Logos: horizontal en el encabezado (mínimo 160 px de ancho, también en móvil), negativo en el pie
+sobre azul marino, "Solo ícono" como favicon y en el hero. No se deforman, recolorean ni llevan efectos.
+
+## Llamadas a la acción
+
+Todos los enlaces con `data-cta` hacen scroll suave a `#cotizacion` y ponen el foco en el primer campo (`#f-nombre`).
+Textos permitidos: "Solicite su cotización" o "Solicite una visita".
+Ubicación: botón fijo del encabezado, hero, tarjeta de Servicios, franja a mitad de página, sección Propuesta,
+Contacto y la barra fija inferior en móvil (`#mobile-cta`, junto al botón de WhatsApp; se oculta en el hero
+y cuando el formulario está a la vista).
+
+## Formulario
+
+Campos: nombre, teléfono, correo, nombre del condominio, sector del condominio y mensaje (opcional).
+Sin backend: al enviar muestra **Enviar por WhatsApp** y **Enviar por correo**. Si `FORM_ENDPOINT` tiene valor,
+también hace `POST` JSON (compatible con Formspree). Incluye campo trampa anti-spam.
+
+## Ver en local
 
 ```bash
-cd /workspace/adconsa-web
-python3 -m http.server 8765
-# abrir http://localhost:8765/
-python3 scripts/capturas.py   # (opcional) regenerar capturas
+python3 -m http.server 8765        # http://localhost:8765/
+python3 scripts/capturas.py        # regenera capturas y comprueba scroll horizontal, errores JS y CTA
 ```
 
-## Dónde cambiar cada cosa
+## Pendiente / supuestos
 
-| Qué | Dónde |
-|---|---|
-| Colores, tipografía, radios, sombras | `css/styles.css` → bloque `:root` (variables `--color-*`, `--font-*`) |
-| Teléfono, WhatsApp, email, dirección, horario, RNC | `js/config.js` (se aplican solos en toda la página vía `data-contact`) |
-| Mensaje inicial de WhatsApp | `js/config.js` → `whatsappMensajeInicial` |
-| Conectar Formspree u otro servicio | `js/config.js` → `FORM_ENDPOINT` (ej. `https://formspree.io/f/xxxx`) |
-| Textos de secciones, servicios, FAQ | `index.html` (cada sección tiene un comentario) |
-| Título, descripción SEO, Open Graph, dominio | `<head>` de `index.html` |
-| Logotipo | SVG inline en el header de `index.html` (`.brand-mark`) + `assets/logo.svg`; colores toman las variables CSS |
-| Favicon / imagen para redes | `assets/favicon.svg`, `assets/og-image.png` |
-
-> Nota: el HTML también trae los datos de contacto como texto de respaldo (por si el JS no carga),
-> y el JSON-LD del `<head>` tiene teléfono/email; al cambiar `config.js`, actualice también esos dos sitios.
-
-## Formulario de cotización
-
-- Validación en el cliente (nombre, teléfono 10–15 dígitos, email, condominio, ubicación, unidades 1–5000, tipo).
-  Errores accesibles (`aria-invalid`, `aria-live`) y foco en el primer campo inválido.
-- Sin backend: al enviar, arma el mensaje y muestra botones **Enviar por WhatsApp** (wa.me) y **Enviar por correo** (mailto).
-- Si `FORM_ENDPOINT` tiene valor, además hace `POST` JSON a ese endpoint (compatible con Formspree) y muestra confirmación.
-- Incluye campo trampa anti-spam (`_gotcha`).
-
-## Pendiente
-
-- [ ] Identidad de marca definitiva (agente Marca y Copy): logo, paleta, tipografía → reemplazar en `:root`, logo y favicon.
-- [ ] Textos definitivos (hero, servicios, beneficios, FAQ) – los actuales son provisionales.
-- [ ] Datos reales en `js/config.js`: teléfono, WhatsApp, email, dirección, horario, RNC (todos marcados `[PENDIENTE]`).
-- [ ] Dominio real: `canonical`, `og:url`, `og:image`, JSON-LD (ahora `https://www.adconsa.com.do/` como supuesto).
-- [ ] Crear cuenta Formspree (o similar) y poner el endpoint en `FORM_ENDPOINT`.
-- [ ] Regenerar `assets/og-image.png` con la marca final.
-- [ ] Opcional: fotos reales, testimonios reales (no se inventaron), aviso de privacidad, analítica, `robots.txt`/`sitemap.xml`.
-- [ ] Las cifras del recuadro "Reporte mensual" del hero son **de ejemplo** (marcadas así en la página).
+- [ ] **WhatsApp**: `18093049035` es provisional (= teléfono principal). Confirmar en `js/config.js`.
+- [ ] **Dominio (SUPUESTO)**: `https://www.adconsasrl.com/` deducido del correo `sc@adconsasrl.com`
+      (ni el brandbook ni las propuestas lo nombran). Usado en `canonical`, `og:url` y JSON-LD.
+- [ ] `og:image`, `twitter:image` y el logo del JSON-LD apuntan a github.io; cambiarlos al dominio definitivo.
+- [ ] `FORM_ENDPOINT` vacío: crear Formspree (o similar) si se quiere recibir el formulario por correo.
+- [ ] Al publicar en el dominio definitivo: quitar `noindex` de `index.html` y el `Disallow` de `robots.txt`.
+- [ ] El texto de la sección Propuesta es el final aprobado por el CEO; el sitio no muestra precios, rangos
+      ni cómo se calcula la tarifa.
+- [ ] Opcional: lista de clientes (las propuestas tienen 16 referencias; no se publicaron sin autorización),
+      fotos reales, aviso de privacidad, analítica.

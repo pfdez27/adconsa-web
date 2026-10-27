@@ -1,0 +1,6 @@
+ADCONSA - Paleta de colores (recreada del logo original)
+Azul claro (torre izquierda, eslogan):  #1B75BC
+Azul medio (torre central, arco):       #2B3990
+Azul marino (torre derecha, wordmark):  #262262
+Blanco (versión negativa):              #FFFFFF
+Tipografía: Montserrat (Google Fonts) - ADCONSA peso ~720 (Bold), eslogan peso ~360 (Light/Regular); texto convertido a trazos en los SVG.

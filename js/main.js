@@ -10,16 +10,23 @@
   /* ---------- Datos de contacto desde config.js ---------- */
   function applyContact() {
     var map = {
-      telefono: function (el) { el.textContent = C.telefonoVisible; el.href = "tel:" + C.telefonoTel; },
-      whatsapp: function (el) { el.textContent = C.whatsappVisible; },
-      email: function (el) { el.textContent = C.emailVisible; el.href = "mailto:" + C.email; },
+      telefonos: function (el) {
+        if (!C.telefonos || !C.telefonos.length) return;
+        el.textContent = "";
+        C.telefonos.forEach(function (t) {
+          var a = document.createElement("a");
+          a.href = "tel:" + t.tel; a.textContent = t.visible; el.appendChild(a);
+        });
+      },
+      email: function (el) { el.textContent = C.email; el.href = "mailto:" + C.email; },
       direccion: function (el) { el.textContent = C.direccion; },
       horario: function (el) { el.textContent = C.horario; },
       rnc: function (el) { el.textContent = C.rnc; }
     };
     document.querySelectorAll("[data-contact]").forEach(function (el) {
-      var fn = map[el.getAttribute("data-contact")];
-      if (fn) fn(el);
+      var key = el.getAttribute("data-contact");
+      var fn = map[key];
+      if (fn && (key === "telefonos" || C[key])) fn(el);
     });
     document.querySelectorAll("[data-wa-link]").forEach(function (el) {
       el.href = waUrl(C.whatsappMensajeInicial);
@@ -57,18 +64,14 @@
     var sendBox = document.getElementById("send-options");
 
     var rules = {
-      nombre: function (v) { return v.trim().length >= 3 || "Escriba su nombre completo."; },
+      nombre: function (v) { return v.trim().length >= 3 || "Escriba su nombre."; },
       telefono: function (v) {
         var d = v.replace(/\D/g, "");
         return (d.length >= 10 && d.length <= 15) || "Escriba un teléfono válido (ej.: 809-555-1234).";
       },
       email: function (v) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()) || "Escriba un correo válido."; },
       condominio: function (v) { return v.trim().length >= 2 || "Indique el nombre del condominio."; },
-      ubicacion: function (v) { return v.trim().length >= 2 || "Indique la ubicación o sector."; },
-      unidades: function (v) {
-        var n = Number(v);
-        return (v !== "" && Number.isInteger(n) && n >= 1 && n <= 5000) || "Indique un número de unidades válido.";
-      }
+      sector: function (v) { return v.trim().length >= 2 || "Indique el sector del condominio."; }
     };
 
     function setError(name, msg) {
@@ -92,41 +95,29 @@
       el.addEventListener("blur", function () { if (el.value) validateField(name); });
       el.addEventListener("input", function () { if (el.getAttribute("aria-invalid")) validateField(name); });
     });
-    form.querySelectorAll('input[name="tipo"]').forEach(function (r) {
-      r.addEventListener("change", function () { setError("tipo", ""); });
-    });
 
     function collect() {
-      var servicios = Array.prototype.map.call(
-        form.querySelectorAll('input[name="servicios"]:checked'), function (c) { return c.value; });
-      var tipo = form.querySelector('input[name="tipo"]:checked');
       return {
         nombre: form.elements.nombre.value.trim(),
         telefono: form.elements.telefono.value.trim(),
         email: form.elements.email.value.trim(),
         condominio: form.elements.condominio.value.trim(),
-        ubicacion: form.elements.ubicacion.value.trim(),
-        unidades: form.elements.unidades.value.trim(),
-        tipo: tipo ? tipo.value : "",
-        servicios: servicios,
+        sector: form.elements.sector.value.trim(),
         mensaje: form.elements.mensaje.value.trim()
       };
     }
 
     function buildMessage(d) {
       return [
-        "Hola Adconsa, quisiera solicitar una cotización.",
+        "Hola ADCONSA, quisiera solicitar una cotización.",
         "",
         "Nombre: " + d.nombre,
         "Teléfono: " + d.telefono,
         "Correo: " + d.email,
         "Condominio: " + d.condominio,
-        "Ubicación / sector: " + d.ubicacion,
-        "Número de unidades: " + d.unidades,
-        "Tipo: " + d.tipo,
-        "Servicios de interés: " + (d.servicios.length ? d.servicios.join(", ") : "No especificado"),
+        "Sector: " + d.sector,
         d.mensaje ? "Mensaje: " + d.mensaje : ""
-      ].filter(function (l, i, a) { return !(l === "" && i === a.length - 1); }).join("\n");
+      ].filter(function (l, i) { return l !== "" || i === 1; }).join("\n");
     }
 
     // Envío opcional a un servicio externo (Formspree o similar)
@@ -135,7 +126,7 @@
       return fetch(C.FORM_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept": "application/json" },
-        body: JSON.stringify(Object.assign({}, d, { servicios: d.servicios.join(", "), _subject: "Solicitud de cotización – " + d.condominio }))
+        body: JSON.stringify(Object.assign({}, d, { _subject: "Solicitud de cotización – " + d.condominio }))
       }).then(function (r) { return r.ok; }).catch(function () { return false; });
     }
 
@@ -147,10 +138,6 @@
       Object.keys(rules).forEach(function (name) {
         if (!validateField(name)) { ok = false; firstInvalid = firstInvalid || form.elements[name]; }
       });
-      if (!form.querySelector('input[name="tipo"]:checked')) {
-        setError("tipo", "Seleccione el tipo de condominio.");
-        ok = false; firstInvalid = firstInvalid || form.querySelector('input[name="tipo"]');
-      }
       if (!ok) {
         status.textContent = "Revise los campos marcados.";
         status.className = "form-status is-error";
@@ -181,9 +168,68 @@
     });
   }
 
+
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------- CTA "Solicite su cotización" / "Solicite una visita": scroll suave + foco en el primer campo ---------- */
+  function initCtas() {
+    var target = document.getElementById("cotizacion");
+    var first = document.getElementById("f-nombre");
+    if (!target || !first) return;
+    document.querySelectorAll('a[data-cta]').forEach(function (a) {
+      a.addEventListener("click", function (e) {
+        e.preventDefault();
+        target.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+        if (history.replaceState) history.replaceState(null, "", "#cotizacion");
+        first.focus({ preventScroll: true });
+      });
+    });
+  }
+
+  /* ---------- Header con sombra al hacer scroll ---------- */
+  function initHeader() {
+    var h = document.querySelector(".site-header");
+    if (!h) return;
+    function on() { h.classList.toggle("is-scrolled", window.scrollY > 8); }
+    on(); window.addEventListener("scroll", on, { passive: true });
+  }
+
+  /* ---------- Barra fija móvil: se oculta cuando el formulario (o el hero) está a la vista ---------- */
+  function initMobileCta() {
+    var bar = document.getElementById("mobile-cta");
+    var form = document.getElementById("cotizacion");
+    var hero = document.querySelector(".hero-actions");
+    if (!bar || !form || !("IntersectionObserver" in window)) return;
+    var formVisible = false, heroVisible = true;
+    function update() { bar.classList.toggle("is-hidden", formVisible || heroVisible); }
+    new IntersectionObserver(function (es) { formVisible = es[0].isIntersecting; update(); },
+      { rootMargin: "0px 0px -15% 0px" }).observe(form);
+    if (hero) new IntersectionObserver(function (es) { heroVisible = es[0].isIntersecting; update(); }).observe(hero);
+    update();
+  }
+
+  /* ---------- Animaciones al aparecer (respeta prefers-reduced-motion) ---------- */
+  function initReveal() {
+    var els = document.querySelectorAll(".reveal");
+    if (reduceMotion || !("IntersectionObserver" in window)) {
+      els.forEach(function (el) { el.classList.add("is-visible"); });
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { en.target.classList.add("is-visible"); io.unobserve(en.target); }
+      });
+    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
+    els.forEach(function (el) { io.observe(el); });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     applyContact();
     initNav();
     initForm();
+    initCtas();
+    initHeader();
+    initMobileCta();
+    initReveal();
   });
 })();

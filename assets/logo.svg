@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 48" role="img" aria-label="Adconsa">
-  <!-- LOGOTIPO PROVISIONAL: reemplazar cuando el agente Marca y Copy entregue la identidad -->
-  <rect x="0" y="4" width="40" height="40" rx="10" fill="#0f3d56"/>
-  <path d="M9 36V22l11-8 11 8v14" fill="none" stroke="#fff" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>
-  <rect x="16.5" y="25" width="7" height="11" rx="1.5" fill="#f2a541"/>
-  <text x="52" y="33" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="26" font-weight="800" fill="#0f3d56" letter-spacing="0.5">Adconsa</text>
-</svg>
